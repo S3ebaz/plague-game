@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#c97a0a">
+<title>Bitácora de Plagas: Manual de Campo</title>
+<style>
+  :root{
+    --paper:#f3ecd9;
+    --card:#fbf7ee;
+    --ink:#2a2618;
+    --ink-soft:#6b6148;
+    --line:#c9bc98;
+    --amber:#c97a0a;
+    --amber-deep:#a3620a;
+    --brick:#a83232;
+    --olive:#4b6b3a;
+    --steel:#3f5866;
+    --brown:#8b6b3a;
+    --focus:#1e6091;
+    --font-display: Georgia, 'Iowan Old Style', 'Palatino Linotype', serif;
+    --font-mono: 'Courier New', ui-monospace, SFMono-Regular, monospace;
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background-color:var(--paper);
+    background-image:radial-gradient(rgba(42,38,24,0.05) 1px, transparent 1px);
+    background-size:16px 16px;
+    color:var(--ink);
+    font-family:var(--font-body);
+    line-height:1.4;
+    min-height:100vh;
+  }
+  button{font-family:inherit;}
+  button:focus-visible, summary:focus-visible{outline:2px solid var(--focus); outline-offset:2px;}
+
+  .topbar{
+    position:sticky;top:0;z-index:50;
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--paper);
+    border-bottom:1px solid var(--line);
+    padding:12px 18px;
+  }
+  .brand{font-family:var(--font-display);font-weight:700;font-size:1.05rem;}
+  .navbtns{display:flex;gap:4px;}
+  .navbtn{
+    background:none;border:none;color:var(--ink-soft);
+    font-family:var(--font-mono);font-size:0.78rem;
+    padding:8px 10px;cursor:pointer;
+    border-bottom:2px solid transparent;
+  }
+  .navbtn:hover{color:var(--ink);}
+  .navbtn.active{color:var(--ink);font-weight:700;border-bottom-color:var(--amber);}
+
+  .container{max-width:760px;margin:0 auto;padding:24px 18px 70px;}
+  .screen{display:none;}
+  .screen.active{display:block;}
+
+  .hero{padding:10px 0 20px;border-bottom:1px dashed var(--line);margin-bottom:22px;}
+  .hero h1{font-family:var(--font-display);font-size:2rem;line-height:1.18;margin:0 0 12px;}
+  .hero p.lead{font-size:1rem;color:var(--ink-soft);max-width:58ch;margin:0;}
+
+  .actions{display:flex;gap:14px;flex-wrap:wrap;margin:22px 0;}
+  .btn-primary, .btn-secondary{
+    padding:14px 20px;border-radius:4px;font-weight:600;font-size:0.95rem;cursor:pointer;
+  }
+  .btn-primary{background:var(--ink);color:var(--paper);border:none;}
+  .btn-primary:hover{background:var(--amber-deep);}
+  .btn-secondary{background:transparent;color:var(--ink);border:1.5px solid var(--ink);}
+  .btn-secondary:hover{background:var(--card);border-color:var(--amber);}
+
+  details.howto{margin:18px 0;border:1px solid var(--line);border-radius:4px;background:var(--card);padding:2px 16px;}
+  details.howto summary{cursor:pointer;padding:12px 0;font-weight:700;list-style:none;}
+  details.howto summary::-webkit-details-marker{display:none;}
+  details.howto summary::before{content:'▸  ';color:var(--amber-deep);}
+  details.howto[open] summary::before{content:'▾  ';}
+  details.howto p{color:var(--ink-soft);font-size:0.92rem;line-height:1.55;}
+
+  .footnote{margin-top:28px;font-size:0.8rem;color:var(--ink-soft);border-top:1px solid var(--line);padding-top:14px;line-height:1.55;}
+
+  .gauge-wrap{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+  .gauge-track{flex:1;height:10px;background:var(--line);border-radius:6px;overflow:hidden;}
+  .gauge-fill{height:100%;background:var(--amber);width:0%;transition:width .3s ease;}
+  .gauge-label,.score-label{font-family:var(--font-mono);font-size:0.78rem;color:var(--ink-soft);white-space:nowrap;}
+
+  .q-card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:20px;margin-bottom:18px;}
+  .q-card p.prompt{font-size:1.05rem;line-height:1.5;margin:0;}
+
+  .options{display:grid;gap:10px;}
+  .option-btn{
+    text-align:left;background:var(--card);border:1.5px solid var(--line);border-radius:4px;
+    padding:12px 14px;font-size:0.92rem;color:var(--ink);cursor:pointer;
+  }
+  .option-btn:hover:not(:disabled){border-color:var(--ink);}
+  .option-btn.correct{border-color:var(--olive);background:#e3ecdb;}
+  .option-btn.incorrect{border-color:var(--brick);background:#f2dede;}
+  .option-btn:disabled{cursor:default;}
+
+  .feedback{margin-top:16px;padding:14px 16px;border-radius:4px;background:var(--card);border:1px dashed var(--line);font-size:0.9rem;line-height:1.55;}
+  .feedback.hidden{display:none;}
+  .feedback-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+
+  .result-tier{font-family:var(--font-display);font-size:1.6rem;margin:16px 0 4px;}
+  .result-score{font-family:var(--font-mono);font-size:1.05rem;color:var(--ink-soft);margin:0 0 14px;}
+
+  .filterbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+  .filterchip{
+    font-family:var(--font-mono);font-size:0.78rem;padding:7px 12px;border-radius:20px;
+    border:1px solid var(--line);background:var(--card);color:var(--ink-soft);cursor:pointer;
+  }
+  .filterchip.active{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;}
+  .specimen-card{
+    background:var(--card);border:1px solid var(--line);border-left:6px solid var(--amber);
+    border-radius:4px;padding:14px;cursor:pointer;text-align:left;width:100%;
+  }
+  .specimen-card:hover{border-color:var(--ink);}
+  .specimen-card .icon-badge{font-size:1.6rem;}
+  .specimen-card h3{margin:8px 0 2px;font-size:1rem;}
+  .specimen-card .sci{font-family:var(--font-mono);font-style:italic;font-size:0.76rem;color:var(--ink-soft);margin:0 0 8px;}
+  .badgerow{display:flex;flex-wrap:wrap;gap:5px;}
+
+  .badge{
+    display:inline-flex;align-items:center;gap:4px;font-family:var(--font-mono);
+    font-size:0.7rem;padding:3px 8px;border-radius:3px;border:1px solid;
+  }
+  .cat-grano{color:#7a4b06;background:#f3dfae;border-color:#c97a0a;}
+  .cat-almacen{color:#5b4322;background:#e6d7bd;border-color:#8b6b3a;}
+  .cat-fabrica{color:#243944;background:#d7e2e6;border-color:#3f5866;}
+  .cat-cocina{color:#2f4423;background:#dbe6cf;border-color:#4b6b3a;}
+
+  .modal-backdrop{
+    position:fixed;inset:0;background:rgba(42,38,24,0.55);
+    display:flex;align-items:flex-start;justify-content:center;
+    padding:40px 16px;overflow-y:auto;z-index:100;
+  }
+  .modal-backdrop.hidden{display:none;}
+  .modal{background:var(--paper);border:1px solid var(--line);border-radius:6px;max-width:560px;width:100%;padding:26px;position:relative;}
+  .modal-close{position:absolute;top:12px;right:14px;background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--ink-soft);}
+  .modal h2{font-family:var(--font-display);margin:6px 0 0;font-size:1.4rem;}
+  .modal .sci{font-family:var(--font-mono);font-style:italic;color:var(--ink-soft);margin:2px 0 12px;}
+  .modal section{margin-bottom:14px;}
+  .modal section h4{margin:0 0 4px;font-size:0.85rem;color:var(--amber-deep);font-weight:700;}
+  .modal ul{margin:4px 0 0 18px;padding:0;font-size:0.9rem;line-height:1.55;}
+  .modal p{margin:2px 0 0;font-size:0.9rem;line-height:1.55;}
+  .dato-box{background:#efe3c8;border-left:3px solid var(--amber);padding:9px 12px;font-size:0.85rem;color:var(--ink-soft);border-radius:3px;}
+
+  @media (max-width:480px){
+    .hero h1{font-size:1.6rem;}
+    .actions{flex-direction:column;}
+    .actions button{width:100%;}
+    .topbar{padding:10px 12px;}
+    .navbtn{padding:8px 6px;font-size:0.72rem;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">🌾 Bitácora de Plagas</div>
+  <nav class="navbtns">
+    <button class="navbtn active" data-screen="home" onclick="showScreen('home')">Inicio</button>
+    <button class="navbtn" data-screen="quiz" onclick="startQuiz()">Inspección</button>
+    <button class="navbtn" data-screen="catalog" onclick="showScreen('catalog')">Catálogo</button>
+  </nav>
+</header>
+
+<div class="container">
+
+  <main id="screen-home" class="screen active">
+    <section class="hero">
+      <h1>Reconoce las plagas antes de que hagan daño</h1>
+      <p class="lead">Un manual de campo interactivo sobre las plagas más comunes en grano almacenado, almacenes, fábricas de alimentos y cocinas: cómo se ven, qué daño causan y cómo se controlan.</p>
+    </section>
+
+    <div class="actions">
+      <button class="btn-primary" onclick="startQuiz()">Iniciar inspección</button>
+      <button class="btn-secondary" onclick="showScreen('catalog')">Ver catálogo de especies</button>
+    </div>
+
+    <details class="howto">
+      <summary>Cómo jugar</summary>
+      <p>En <strong>Inspección</strong> respondes 10 preguntas tomadas al azar de un banco más amplio: identificar la plaga por sus señas, saber en qué lugar suele aparecer, o elegir la medida de control correcta. Después de cada respuesta puedes abrir la ficha completa de esa especie para repasar el tema con calma.</p>
+      <p>En el <strong>Catálogo</strong> puedes explorar las 14 especies sin prisa: descripción, daño que causan, señas para detectarlas y medidas de control, filtrando por grano, almacén, fábrica o cocina.</p>
+      <p>Toda la información vive dentro de este mismo archivo: una vez que lo abres, funciona igual con wifi, con datos móviles o completamente sin conexión.</p>
+    </details>
+
+    <p class="footnote">Contenido con fines educativos. La aplicación de fumigantes, insecticidas o rodenticidas debe realizarla siempre personal certificado, siguiendo la etiqueta del producto y la normativa fitosanitaria local.</p>
+  </main>
+
+  <main id="screen-quiz" class="screen">
+    <div class="gauge-wrap">
+      <span class="gauge-label" id="gauge-label">1 / 10</span>
+      <div class="gauge-track"><div class="gauge-fill" id="gauge-fill"></div></div>
+      <span class="score-label" id="score-label">Aciertos: 0</span>
+    </div>
+    <div class="q-card">
+      <p class="prompt" id="q-prompt"></p>
+    </div>
+    <div class="options" id="q-options"></div>
+    <div class="feedback hidden" id="feedback">
+      <strong id="feedback-title"></strong>
+      <p id="feedback-text"></p>
+      <div class="feedback-actions">
+        <button class="btn-secondary" id="ficha-btn">Ver ficha completa</button>
+        <button class="btn-primary" id="next-btn">Siguiente pregunta</button>
+      </div>
+    </div>
+  </main>
+
+  <main id="screen-catalog" class="screen">
+    <div class="filterbar">
+      <button class="filterchip active" data-filter="todas" onclick="renderCatalog('todas')">Todas</button>
+      <button class="filterchip" data-filter="grano" onclick="renderCatalog('grano')">🌾 Grano</button>
+      <button class="filterchip" data-filter="almacen" onclick="renderCatalog('almacen')">📦 Almacén</button>
+      <button class="filterchip" data-filter="fabrica" onclick="renderCatalog('fabrica')">🏭 Fábrica</button>
+      <button class="filterchip" data-filter="cocina" onclick="renderCatalog('cocina')">🍳 Cocina</button>
+    </div>
+    <div class="grid" id="catalog-grid"></div>
+  </main>
+
+  <main id="screen-result" class="screen">
+    <h2 class="result-tier" id="result-tier"></h2>
+    <p class="result-score" id="result-score"></p>
+    <p id="result-msg"></p>
+    <div class="actions">
+      <button class="btn-primary" onclick="startQuiz()">Jugar de nuevo</button>
+      <button class="btn-secondary" onclick="showScreen('catalog')">Ir al catálogo</button>
+    </div>
+  </main>
+
+</div>
+
+<div class="modal-backdrop hidden" id="species-modal" onclick="closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal()" aria-label="Cerrar">✕</button>
+    <div style="font-size:2rem;" id="modal-icon"></div>
+    <h2 id="modal-name"></h2>
+    <p class="sci" id="modal-sci"></p>
+    <div class="badgerow" id="modal-badges" style="margin-bottom:14px;"></div>
+    <section>
+      <h4>Tamaño</h4>
+      <p id="modal-tamano"></p>
+    </section>
+    <section>
+      <h4>Descripción</h4>
+      <p id="modal-descripcion"></p>
+    </section>
+    <section>
+      <h4>Daño que causa</h4>
+      <p id="modal-danio"></p>
+    </section>
+    <section>
+      <h4>Cómo detectarla</h4>
+      <p id="modal-deteccion"></p>
+    </section>
+    <section>
+      <h4>Cómo controlarla</h4>
+      <ul id="modal-control"></ul>
+    </section>
+    <div class="dato-box" id="modal-dato"></div>
+  </div>
+</div>
+
+<script>
+  var CATS = {
+    grano:   { label:'Grano almacenado', icon:'🌾', cls:'cat-grano',   color:'#c97a0a' },
+    almacen: { label:'Almacén',          icon:'📦', cls:'cat-almacen', color:'#8b6b3a' },
+    fabrica: { label:'Fábrica',          icon:'🏭', cls:'cat-fabrica', color:'#3f5866' },
+    cocina:  { label:'Cocina',           icon:'🍳', cls:'cat-cocina',  color:'#4b6b3a' }
+  };
+
+  var SPECIES = [
+    {
+      id:'gorgojo-maiz', nombre:'Gorgojo del maíz', cientifico:'Sitophilus zeamais',
+      icono:'🪲', categorias:['grano','almacen'], tamano:'3 a 5 mm',
+      descripcion:'Escarabajo de color café oscuro a negro, con una trompa alargada característica de su género. Puede volar, por lo que llega a infestar el grano desde el campo antes de la cosecha.',
+      danio:'La hembra perfora el grano y deposita un huevo dentro; la larva se desarrolla oculta en el interior, vaciando el grano y dejando solo la cáscara.',
+      deteccion:'Granos con pequeños orificios redondos de salida, polvillo fino de grano y escarabajos adultos caminando sobre la superficie almacenada.',
+      control:[
+        'Secar y enfriar el grano por debajo del 13% de humedad antes de almacenar',
+        'Limpiar y desinfestar silos y bodegas vacías antes de la nueva cosecha',
+        'Monitoreo con trampas de feromonas y trampas de caída',
+        'Fumigación con fosfina en espacios herméticos, aplicada por personal certificado',
+        'Atmósferas controladas con CO2 o nitrógeno en silos herméticos, como alternativa sin residuos'
+      ],
+      dato:'Es de los pocos gorgojos capaces de volar largas distancias entre bodegas.'
+    },
+    {
+      id:'gorgojo-trigo', nombre:'Gorgojo del trigo (granero)', cientifico:'Sitophilus granarius',
+      icono:'🪲', categorias:['grano','almacen'], tamano:'3 a 4 mm',
+      descripcion:'Muy similar al gorgojo del maíz, pero no puede volar porque sus alas están fusionadas. Prefiere climas templados y es común en trigo, cebada y centeno almacenados.',
+      danio:'La larva se desarrolla dentro del grano, destruyendo el embrión y reduciendo drásticamente el poder germinativo y el valor nutricional.',
+      deteccion:'Orificios de emergencia en el grano, aumento de temperatura y humedad en la masa de grano por su actividad, olor a humedad.',
+      control:[
+        'Ventilación y enfriamiento mecánico del grano almacenado',
+        'Rotación de inventario, primero en entrar, primero en salir',
+        'Inspección periódica con muestreo y tamizado de granos',
+        'Fumigación con fosfina en bodegas cerradas',
+        'Sellado hermético de grietas y uniones en silos'
+      ],
+      dato:'Sus alas están fusionadas: si lo ves caminar sin volar, probablemente es este gorgojo.'
+    },
+    {
+      id:'taladrillo-menor', nombre:'Taladrillo menor de los granos', cientifico:'Rhyzopertha dominica',
+      icono:'🪲', categorias:['grano','almacen'], tamano:'2 a 3 mm',
+      descripcion:'Escarabajo cilíndrico color café rojizo, considerado una de las plagas más destructivas de granos almacenados por su capacidad de perforar incluso sacos y madera.',
+      danio:'Adultos y larvas se alimentan del interior del grano, reduciéndolo a polvo fino; también perfora empaques de cartón, plástico delgado y madera.',
+      deteccion:'Grano convertido en polvo muy fino, perforaciones en costales o cajas, olor dulzón característico en la bodega.',
+      control:[
+        'Uso de costales y empaques resistentes a la perforación',
+        'Limpieza profunda de bodegas, incluyendo grietas en pisos y muros',
+        'Monitoreo con trampas de feromonas específicas',
+        'Fumigación con fosfina en espacios cerrados',
+        'Tratamiento térmico del grano con calor controlado, como alternativa no química'
+      ],
+      dato:'Puede perforar hasta cartón y plástico delgado, no solo el grano.'
+    },
+    {
+      id:'gran-taladro', nombre:'Gran taladro de los granos', cientifico:'Prostephanus truncatus',
+      icono:'🪲', categorias:['grano','almacen'], tamano:'3 a 4.5 mm',
+      descripcion:'Conocido también como barrenador grande de los granos, es una plaga muy agresiva en maíz almacenado, capaz de causar pérdidas superiores al 30% en pocos meses.',
+      danio:'Perfora el grano completo, incluida la parte más dura, y puede reinfestar mazorcas antes del desgrane; también daña estructuras de madera del almacén.',
+      deteccion:'Grano reducido a un polvo grueso tipo aserrín, mazorcas con múltiples perforaciones, escarabajos en las uniones de costales.',
+      control:[
+        'Cosecha y desgrane oportuno para reducir el tiempo de exposición en campo',
+        'Almacenamiento en silos metálicos herméticos',
+        'Control biológico con el depredador natural Teretriosoma nigrescens',
+        'Fumigación con fosfina en almacenes cerrados',
+        'Inspección de mazorcas antes de ingresarlas a bodega'
+      ],
+      dato:'Se le considera una plaga cuarentenaria en varios países por su capacidad destructiva.'
+    },
+    {
+      id:'dientudo', nombre:'Escarabajo dientudo de los granos', cientifico:'Oryzaephilus surinamensis',
+      icono:'🪲', categorias:['grano','almacen','cocina'], tamano:'2.5 a 3.5 mm',
+      descripcion:'Escarabajo aplanado y alargado, con seis proyecciones tipo diente a cada lado del tórax. No puede perforar grano sano, así que aprovecha granos ya dañados por otras plagas.',
+      danio:'Se alimenta de grano quebrado, harinas, cereales de desayuno, frutas secas y otros productos procesados, contaminándolos con excremento y mudas.',
+      deteccion:'Escarabajos planos caminando en la despensa o bodega, presencia en productos de cereal abiertos, telarañas finas sobre el producto.',
+      control:[
+        'Almacenar cereales y harinas en recipientes herméticos',
+        'Rotar y revisar productos secos con regularidad',
+        'Limpieza de repisas y grietas donde se acumulan residuos de alimento',
+        'Trampas de feromonas para monitoreo en bodega',
+        'Insecticidas piretroides autorizados para superficies, aplicados por personal capacitado'
+      ],
+      dato:'No puede atacar grano sano: solo aparece cuando ya hay daño previo por otra plaga.'
+    },
+    {
+      id:'rojo-harina', nombre:'Escarabajo rojo de la harina', cientifico:'Tribolium castaneum',
+      icono:'🪲', categorias:['grano','fabrica','cocina'], tamano:'3 a 4 mm',
+      descripcion:'Escarabajo de color café rojizo brillante, una de las plagas más comunes en molinos, panaderías y fábricas de alimentos procesados. No ataca grano entero sano, sino harinas y subproductos.',
+      danio:'Contamina harina, salvado, pastas y alimento para mascotas; en infestaciones altas produce un olor y sabor rancio por sus secreciones defensivas.',
+      deteccion:'Harina con grumos o apelmazada, olor a rancio o moho, escarabajos y larvas amarillentas visibles en costales rotos o grietas de máquinas.',
+      control:[
+        'Sanitización profunda de molinos, tolvas y líneas de producción',
+        'Control de humedad y temperatura en áreas de almacenamiento de harina',
+        'Reguladores de crecimiento de insectos, en tratamientos autorizados',
+        'Monitoreo constante con trampas de feromonas en toda la planta',
+        'Fumigación de instalaciones vacías dentro de un programa de manejo integrado de plagas'
+      ],
+      dato:'Se dispersa con facilidad por las tuberías de transporte neumático de harina.'
+    },
+    {
+      id:'confuso-harina', nombre:'Escarabajo confuso de la harina', cientifico:'Tribolium confusum',
+      icono:'🪲', categorias:['fabrica','cocina'], tamano:'3 a 4 mm',
+      descripcion:'Prácticamente idéntico al escarabajo rojo de la harina; se distingue solo con lupa por la forma de sus antenas. A diferencia de su pariente, no puede volar.',
+      danio:'Igual que su pariente, infesta harinas, cereales molidos y alimentos secos, dejando excremento y mudas que contaminan el producto.',
+      deteccion:'Harina con olor rancio y grumos, infestación visible en bolsas de harina abiertas por tiempo prolongado.',
+      control:[
+        'Rotación estricta de inventario de harinas, primero en entrar, primero en salir',
+        'Sellado de sacos y silos de harina',
+        'Limpieza de equipos de molienda y transporte neumático',
+        'Monitoreo con trampas de feromonas específicas para este género',
+        'Insecticidas residuales autorizados en grietas y hendiduras, nunca sobre el alimento'
+      ],
+      dato:'Es el gemelo casi perfecto del escarabajo rojo de la harina; distinguirlos requiere microscopio.'
+    },
+    {
+      id:'palomilla-india', nombre:'Palomilla india de la harina', cientifico:'Plodia interpunctella',
+      icono:'🦋', categorias:['grano','fabrica','cocina'], tamano:'8 a 10 mm de envergadura',
+      descripcion:'Mariposa pequeña con las alas delanteras de dos tonos, base clara y punta cobriza. Es la plaga de polilla más común en despensas domésticas y bodegas de alimentos secos.',
+      danio:'La larva teje hilos de seda que apelmazan el producto, como harina, cereal, frutos secos o chocolate, dejando telarañas visibles y excremento.',
+      deteccion:'Telarañas en las esquinas de envases o repisas, polillas adultas volando cerca de la despensa al anochecer, grumos sedosos en el producto.',
+      control:[
+        'Inspeccionar productos nuevos antes de guardarlos',
+        'Almacenar granos, cereales y frutos secos en recipientes herméticos',
+        'Trampas de feromonas específicas para monitoreo y captura de machos',
+        'Congelar productos sospechosos varios días para eliminar huevos y larvas',
+        'Limpieza profunda de alacenas, incluidas las grietas donde se forman capullos'
+      ],
+      dato:'Es la polilla que más frecuentemente encuentran las familias en la alacena de casa.'
+    },
+    {
+      id:'palomilla-cereales', nombre:'Palomilla de los cereales', cientifico:'Sitotroga cerealella',
+      icono:'🦋', categorias:['grano'], tamano:'12 a 15 mm de envergadura',
+      descripcion:'Polilla de color paja o amarillento, considerada una plaga primaria de grano entero: a diferencia de la palomilla india, sí puede atacar grano sano desde el campo.',
+      danio:'La larva se desarrolla por completo dentro de un solo grano y sale como adulto por un orificio circular; el grano queda vacío por dentro.',
+      deteccion:'Granos livianos que flotan al sumergirlos en agua, pequeños orificios redondos de salida, polillas volando sobre la masa de grano almacenado.',
+      control:[
+        'Cosecha oportuna para reducir la infestación de campo',
+        'Secado adecuado del grano antes de almacenarlo',
+        'Almacenamiento en silos herméticos o con atmósfera controlada',
+        'Fumigación con fosfina cuando la infestación es alta',
+        'Monitoreo con trampas de luz y de feromonas'
+      ],
+      dato:'Es de las pocas polillas de grano que ataca directamente el grano sano en el campo.'
+    },
+    {
+      id:'acaro', nombre:'Ácaro de los granos', cientifico:'Acarus siro',
+      icono:'🔎', categorias:['grano','almacen'], tamano:'0.3 a 0.7 mm, visible solo con lupa',
+      descripcion:'Artrópodo microscópico, no es un insecto sino un ácaro, pariente de arañas y garrapatas. Prospera en granos con humedad ligeramente elevada y climas templados a fríos.',
+      danio:'Se alimenta del germen del grano, reduce el poder germinativo de las semillas y puede causar reacciones alérgicas y molestias respiratorias en el personal expuesto.',
+      deteccion:'Olor dulzón a miel o a moho en la bodega, polvo fino color café en la superficie del grano, comezón en la piel del personal que lo manipula.',
+      control:[
+        'Reducir la humedad del grano por debajo del 12 a 13%',
+        'Ventilar y enfriar activamente el grano almacenado',
+        'Evitar mezclar grano nuevo con grano infestado',
+        'Uso de equipo de protección personal al manipular grano infestado',
+        'Tratamientos acaricidas autorizados, aplicados por personal certificado'
+      ],
+      dato:'No es un insecto: tiene ocho patas, como las arañas y garrapatas.'
+    },
+    {
+      id:'khapra', nombre:'Escarabajo Khapra', cientifico:'Trogoderma granarium',
+      icono:'🪲', categorias:['grano','almacen'], tamano:'1.6 a 3 mm',
+      descripcion:'Una de las plagas de granos almacenados más peligrosas del mundo, de importancia cuarentenaria internacional. Sus larvas peludas sobreviven meses sin alimento y resisten muchos insecticidas.',
+      danio:'Se alimenta de una amplia variedad de granos y productos secos; su sola presencia puede provocar el rechazo o cierre de exportaciones por regulaciones fitosanitarias.',
+      deteccion:'Pieles y pelos de larva acumulados en el grano, larvas color café con pelos largos, escarabajos ovalados y pequeños en grietas de silos.',
+      control:[
+        'Notificación inmediata a la autoridad fitosanitaria, por ser una plaga de reporte obligatorio en muchos países',
+        'Cuarentena y aislamiento del lote afectado',
+        'Fumigación intensiva con fosfina bajo supervisión oficial',
+        'Destrucción controlada del material fuertemente infestado',
+        'Inspección estricta de embarques de importación y exportación'
+      ],
+      dato:'Está en la lista de plagas cuarentenarias de mayor prioridad a nivel mundial.'
+    },
+    {
+      id:'cucaracha-alemana', nombre:'Cucaracha alemana', cientifico:'Blattella germanica',
+      icono:'🪳', categorias:['fabrica','cocina'], tamano:'1.3 a 1.6 cm',
+      descripcion:'Cucaracha pequeña de color café claro con dos franjas oscuras detrás de la cabeza. Es la especie más común en cocinas y áreas de procesamiento de alimentos por su rápida reproducción.',
+      danio:'Contamina superficies y alimentos con bacterias; sus alérgenos, como la piel muda y el excremento, pueden desencadenar asma y alergias en el personal.',
+      deteccion:'Manchas fecales oscuras tipo punto en esquinas y grietas, ootecas pegadas bajo muebles, olor a humedad en infestaciones altas.',
+      control:[
+        'Eliminar fuentes de agua y humedad, como fugas o condensación',
+        'Sellar grietas, rendijas y pasos de tubería',
+        'Cebos en gel de baja toxicidad en puntos estratégicos',
+        'Monitoreo con trampas adhesivas para detectar focos',
+        'Limpieza nocturna profunda, ya que es una especie de hábitos nocturnos'
+      ],
+      dato:'Una sola hembra puede generar miles de descendientes en pocos meses.'
+    },
+    {
+      id:'cucaracha-americana', nombre:'Cucaracha americana', cientifico:'Periplaneta americana',
+      icono:'🪳', categorias:['almacen','fabrica'], tamano:'3.5 a 5 cm',
+      descripcion:'La especie de cucaracha más grande de importancia urbana, de color café rojizo, común en drenajes, sótanos, coladeras y bodegas con humedad.',
+      danio:'Actúa como vector mecánico de bacterias como Salmonella y E. coli al desplazarse entre drenajes y superficies de alimentos.',
+      deteccion:'Presencia en coladeras, registros y áreas húmedas cercanas a la bodega, ootecas de mayor tamaño que las de la cucaracha alemana.',
+      control:[
+        'Mantenimiento de drenajes y sifones en buen estado',
+        'Eliminar acumulación de cartón y humedad en bodegas',
+        'Cebos en estaciones cerradas alrededor del perímetro del edificio',
+        'Sellado de registros y coladeras con mallas',
+        'Aplicación perimetral de insecticidas residuales por personal certificado'
+      ],
+      dato:'Puede sobrevivir semanas sin agua y meses sin comida.'
+    },
+    {
+      id:'roedores', nombre:'Roedores: rata y ratón', cientifico:'Rattus norvegicus, Rattus rattus, Mus musculus',
+      icono:'🐭', categorias:['grano','almacen','fabrica','cocina'], tamano:'Ratón: 6 a 9 cm de cuerpo. Rata: 20 a 25 cm de cuerpo',
+      descripcion:'Mamíferos que se adaptan a casi cualquier instalación de almacenamiento o procesamiento de alimentos. Roen constantemente para desgastar sus incisivos, lo que además de contaminar puede dañar cableado y estructuras.',
+      danio:'Consumen y contaminan grandes cantidades de grano y alimento con orina, heces y pelo; transmiten enfermedades como salmonelosis y leptospirosis.',
+      deteccion:'Excremento en forma de grano de arroz cerca de fuentes de alimento, roeduras en costales, cables o empaques, huellas y manchas de grasa a lo largo de paredes.',
+      control:[
+        'Eliminar refugios y acumulación de material en desuso',
+        'Sellar todas las posibles entradas mayores a 6 mm',
+        'Estaciones de trampas mecánicas y de cebo en el perímetro',
+        'Rodenticidas anticoagulantes en estaciones cerradas y a prueba de manipulación, solo con personal certificado',
+        'Monitoreo periódico con bitácora de consumo de cebo y capturas'
+      ],
+      dato:'Una rata puede pasar por un espacio del tamaño de una moneda gracias a su cuerpo flexible.'
+    }
+  ];
+
+  var QUESTIONS = [
+    { prompt:'Un escarabajo con trompa alargada perfora el grano de maíz y se le encuentra volando entre bodegas incluso antes de la cosecha. ¿Qué plaga es?',
+      options:['Gorgojo del maíz','Gorgojo del trigo (granero)','Escarabajo rojo de la harina','Gran taladro de los granos'], correct:0,
+      explanation:'El gorgojo del maíz tiene una trompa característica y, a diferencia del gorgojo del granero, sí puede volar, por lo que puede infestar el grano desde el campo.',
+      speciesId:'gorgojo-maiz' },
+    { prompt:'Es casi idéntico al gorgojo del maíz, pero jamás lo verás volar porque sus alas están fusionadas. ¿Cuál es?',
+      options:['Gorgojo del maíz','Gorgojo del trigo (granero)','Palomilla de los cereales','Ácaro de los granos'], correct:1,
+      explanation:'El gorgojo del granero no puede volar porque sus élitros están fusionados; por eso siempre se le encuentra caminando sobre el grano.',
+      speciesId:'gorgojo-trigo' },
+    { prompt:'En la bodega encuentras costales de cartón perforados y el grano convertido en un polvo finísimo. ¿Qué plaga sospechas?',
+      options:['Escarabajo confuso de la harina','Taladrillo menor de los granos','Cucaracha americana','Palomilla india de la harina'], correct:1,
+      explanation:'El taladrillo menor perfora incluso cartón y reduce el grano casi a polvo, algo poco común en otras plagas de granos.',
+      speciesId:'taladrillo-menor' },
+    { prompt:'Las mazorcas de maíz almacenadas tienen múltiples perforaciones y el grano se redujo a un polvo grueso tipo aserrín. ¿Cuál es la plaga más probable?',
+      options:['Gran taladro de los granos','Gorgojo del trigo','Escarabajo Khapra','Escarabajo dientudo de los granos'], correct:0,
+      explanation:'El gran taladro ataca mazorcas completas y puede causar pérdidas superiores al 30% en pocos meses, un daño más severo que el del gorgojo común.',
+      speciesId:'gran-taladro' },
+    { prompt:'Este escarabajo aplanado con proyecciones tipo diente en el tórax no puede perforar grano sano: solo aparece cuando ya hay daño previo. ¿Quién es?',
+      options:['Escarabajo dientudo de los granos','Escarabajo rojo de la harina','Gorgojo del maíz','Ácaro de los granos'], correct:0,
+      explanation:'El escarabajo dientudo se identifica por las proyecciones tipo diente en su tórax y solo infesta grano ya dañado o productos procesados.',
+      speciesId:'dientudo' },
+    { prompt:'En el molino, la harina se apelmaza y desarrolla un olor rancio desagradable. Al revisar encuentras escarabajos color café rojizo brillante. ¿Cuál es?',
+      options:['Escarabajo rojo de la harina','Escarabajo confuso de la harina','Taladrillo menor de los granos','Cucaracha alemana'], correct:0,
+      explanation:'El escarabajo rojo de la harina es de las plagas más comunes en molinos y sus secreciones dan un sabor y olor rancio a la harina infestada.',
+      speciesId:'rojo-harina' },
+    { prompt:'Es prácticamente idéntico al escarabajo rojo de la harina, pero no puede volar y solo se distingue con lupa por la forma de sus antenas. ¿Quién es?',
+      options:['Escarabajo confuso de la harina','Escarabajo rojo de la harina','Escarabajo dientudo de los granos','Escarabajo Khapra'], correct:0,
+      explanation:'El escarabajo confuso es el gemelo del escarabajo rojo de la harina; a simple vista son casi imposibles de diferenciar.',
+      speciesId:'confuso-harina' },
+    { prompt:'Encuentras telarañas finas en las esquinas de la alacena y ves pequeñas polillas volando al anochecer cerca de un paquete de cereal. ¿Qué plaga es?',
+      options:['Palomilla de los cereales','Palomilla india de la harina','Ácaro de los granos','Escarabajo dientudo de los granos'], correct:1,
+      explanation:'La palomilla india de la harina es la polilla más común en despensas domésticas; sus larvas tejen hilos de seda que apelmazan el producto.',
+      speciesId:'palomilla-india' },
+    { prompt:'A diferencia de otras polillas de grano, esta sí ataca grano entero y sano desde el campo; el grano infestado flota al sumergirlo en agua. ¿Cuál es?',
+      options:['Palomilla india de la harina','Palomilla de los cereales','Gorgojo del maíz','Escarabajo Khapra'], correct:1,
+      explanation:'La palomilla de los cereales puede infestar grano sano en campo; el grano vaciado por dentro se vuelve tan liviano que flota.',
+      speciesId:'palomilla-cereales' },
+    { prompt:'El personal de la bodega reporta comezón en la piel y un olor dulzón a miel en el grano almacenado. Al revisar con lupa ves puntitos que se mueven. ¿Qué es?',
+      options:['Escarabajo Khapra','Ácaro de los granos','Palomilla de los cereales','Cucaracha alemana'], correct:1,
+      explanation:'El ácaro de los granos es tan pequeño que solo se ve con lupa; su presencia se asocia con olor a miel o moho y puede irritar la piel del personal.',
+      speciesId:'acaro' },
+    { prompt:'Encuentras larvas peludas y muchas pieles vacías en el grano; es una plaga de reporte obligatorio ante las autoridades agrícolas. ¿Cuál es?',
+      options:['Gran taladro de los granos','Escarabajo Khapra','Ácaro de los granos','Escarabajo rojo de la harina'], correct:1,
+      explanation:'El escarabajo Khapra es una plaga cuarentenaria de importancia mundial; sus larvas dejan pieles y pelos característicos, y su hallazgo debe notificarse a la autoridad fitosanitaria.',
+      speciesId:'khapra' },
+    { prompt:'En la cocina de la fábrica ves manchas fecales oscuras tipo punto en las esquinas y pequeñas cápsulas de huevo bajo el fregadero. ¿Qué plaga es?',
+      options:['Cucaracha americana','Cucaracha alemana','Roedores','Escarabajo dientudo de los granos'], correct:1,
+      explanation:'La cucaracha alemana es la especie más común en cocinas; deja manchas fecales tipo punto y ootecas pegadas en zonas ocultas.',
+      speciesId:'cucaracha-alemana' },
+    { prompt:'Es la cucaracha de mayor tamaño, y la encuentras saliendo de las coladeras del área húmeda de la bodega. ¿Cuál es?',
+      options:['Cucaracha alemana','Cucaracha americana','Roedores','Escarabajo Khapra'], correct:1,
+      explanation:'La cucaracha americana es mucho más grande que la alemana y está asociada a drenajes, coladeras y áreas húmedas.',
+      speciesId:'cucaracha-americana' },
+    { prompt:'Encuentras excremento con forma de grano de arroz cerca de los costales y roeduras en el cableado eléctrico de la bodega. ¿Qué plaga es?',
+      options:['Escarabajo Khapra','Cucaracha americana','Roedores: rata y ratón','Palomilla de los cereales'], correct:2,
+      explanation:'Los roedores dejan excremento característico en forma de grano de arroz y roen constantemente cables y estructuras para desgastar sus incisivos.',
+      speciesId:'roedores' },
+    { prompt:'¿Dónde es más probable detectar una infestación del escarabajo Khapra?',
+      options:['En una cocina doméstica','En grano almacenado en silos o bodegas','En un restaurante','En un cultivo de hortalizas al aire libre'], correct:1,
+      explanation:'El escarabajo Khapra es una plaga de granos almacenados y bodegas; rara vez se le asocia con cocinas o cultivos en campo abierto.',
+      speciesId:'khapra' },
+    { prompt:'¿En qué tipo de instalación es más común encontrar al escarabajo confuso de la harina?',
+      options:['En un silo de grano entero recién cosechado','En una fábrica o molino de harina','En un río o cuerpo de agua','En un jardín exterior'], correct:1,
+      explanation:'El escarabajo confuso de la harina no ataca grano entero sano; se asocia sobre todo a harinas y productos molidos en fábricas y molinos.',
+      speciesId:'confuso-harina' },
+    { prompt:'La cucaracha americana está más asociada a:',
+      options:['Drenajes, coladeras y áreas húmedas de bodegas y fábricas','El interior de granos de maíz sano','Trampas de feromonas en silos de trigo','Nidos en las copas de los árboles'], correct:0,
+      explanation:'A diferencia de otras plagas de esta lista, la cucaracha americana prospera en drenajes y zonas húmedas, no dentro del grano.',
+      speciesId:'cucaracha-americana' },
+    { prompt:'Si confirmas la presencia del escarabajo Khapra en un lote de grano importado, ¿cuál es el primer paso correcto?',
+      options:['Vender el lote de inmediato antes de que se disperse la plaga','Notificar a la autoridad fitosanitaria y poner el lote en cuarentena','Mezclarlo con grano sano para diluir la infestación','Ignorarlo si la infestación parece baja'], correct:1,
+      explanation:'Por ser una plaga cuarentenaria de reporte obligatorio, lo primero es notificar a la autoridad fitosanitaria y aislar el lote, nunca mezclarlo ni comercializarlo.',
+      speciesId:'khapra' },
+    { prompt:'¿Cuál de las siguientes es una medida de control adecuada para roedores en una bodega de alimentos?',
+      options:['Colocar trampas de feromonas específicas para insectos','Sellar entradas mayores a 6 mm y usar estaciones de trampas y cebo en el perímetro','Aumentar la humedad del grano para desalentarlos','Rociar fosfina directamente sobre las rutas de tránsito'], correct:1,
+      explanation:'El control de roedores se basa en exclusión física, como sellar entradas, y estaciones de trampas o cebo; las feromonas de insectos y la fosfina no son medidas adecuadas para roedores.',
+      speciesId:'roedores' },
+    { prompt:'Encuentras un paquete de cereal con telarañas y grumos en la alacena. ¿Qué harías primero con productos similares sin abrir?',
+      options:['Tirarlos todos sin revisarlos','Inspeccionarlos y, si hay duda, congelarlos varios días para eliminar huevos y larvas','Guardarlos junto al paquete infestado para monitorear','Rociarlos directamente con insecticida de cocina'], correct:1,
+      explanation:'Inspeccionar los productos secos y congelarlos unos días es una forma segura y sin residuos de eliminar huevos y larvas de la palomilla india antes de decidir si se conservan.',
+      speciesId:'palomilla-india' }
+  ];
+
+  var quizQuestions = [];
+  var currentQ = 0;
+  var score = 0;
+  var answered = false;
+
+  function showScreen(id){
+    document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
+    document.getElementById('screen-'+id).classList.add('active');
+    document.querySelectorAll('.navbtn').forEach(function(b){
+      b.classList.toggle('active', b.dataset.screen===id);
+    });
+    window.scrollTo(0,0);
+    if(id==='catalog'){ renderCatalog('todas'); }
+  }
+
+  function shuffle(arr){
+    var a = arr.slice();
+    for(var i=a.length-1;i>0;i--){
+      var j = Math.floor(Math.random()*(i+1));
+      var tmp = a[i]; a[i]=a[j]; a[j]=tmp;
+    }
+    return a;
+  }
+
+  function startQuiz(){
+    quizQuestions = shuffle(QUESTIONS).slice(0,10);
+    currentQ = 0;
+    score = 0;
+    showScreen('quiz');
+    renderQuestion();
+  }
+
+  function renderQuestion(){
+    answered = false;
+    var q = quizQuestions[currentQ];
+    document.getElementById('gauge-fill').style.width = (currentQ/quizQuestions.length*100)+'%';
+    document.getElementById('gauge-label').textContent = (currentQ+1)+' / '+quizQuestions.length;
+    document.getElementById('score-label').textContent = 'Aciertos: '+score;
+    document.getElementById('q-prompt').textContent = q.prompt;
+    var optsWrap = document.getElementById('q-options');
+    optsWrap.innerHTML = '';
+    q.options.forEach(function(opt, i){
+      var btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.textContent = opt;
+      btn.onclick = function(){ selectAnswer(i); };
+      optsWrap.appendChild(btn);
+    });
+    document.getElementById('feedback').classList.add('hidden');
+  }
+
+  function selectAnswer(i){
+    if(answered) return;
+    answered = true;
+    var q = quizQuestions[currentQ];
+    var buttons = document.querySelectorAll('#q-options .option-btn');
+    buttons.forEach(function(b, idx){
+      b.disabled = true;
+      if(idx===q.correct) b.classList.add('correct');
+      else if(idx===i) b.classList.add('incorrect');
+    });
+    if(i===q.correct) score++;
+    document.getElementById('score-label').textContent = 'Aciertos: '+score;
+    var fb = document.getElementById('feedback');
+    fb.classList.remove('hidden');
+    document.getElementById('feedback-title').textContent = (i===q.correct) ? 'Correcto.' : 'No exactamente.';
+    document.getElementById('feedback-text').textContent = q.explanation;
+    document.getElementById('ficha-btn').onclick = function(){ openModal(q.speciesId); };
+    var nextBtn = document.getElementById('next-btn');
+    nextBtn.textContent = (currentQ === quizQuestions.length-1) ? 'Ver resultados' : 'Siguiente pregunta';
+    nextBtn.onclick = nextQuestion;
+  }
+
+  function nextQuestion(){
+    currentQ++;
+    if(currentQ >= quizQuestions.length){
+      showResult();
+    } else {
+      renderQuestion();
+    }
+  }
+
+  function showResult(){
+    showScreen('result');
+    var total = quizQuestions.length;
+    document.getElementById('result-score').textContent = score+' de '+total+' correctas';
+    var pct = score/total;
+    var tier, msg;
+    if(pct>=0.9){ tier='Inspector experto'; msg='Conoces las plagas de granos y alimentos casi como un especialista. Sigue repasando el catálogo para no perder detalle.'; }
+    else if(pct>=0.7){ tier='Inspector de campo confiable'; msg='Tienes buen dominio del tema. Revisa el catálogo en las especies donde dudaste para reforzar.'; }
+    else if(pct>=0.5){ tier='Aprendiz en entrenamiento'; msg='Vas por buen camino. Explora el catálogo para reconocer mejor las señas de cada plaga.'; }
+    else { tier='Necesitas repasar el catálogo'; msg='Ninguna plaga es fácil de identificar la primera vez. Revisa el catálogo con calma y vuelve a intentarlo.'; }
+    document.getElementById('result-tier').textContent = tier;
+    document.getElementById('result-msg').textContent = msg;
+  }
+
+  function renderCatalog(filter){
+    document.querySelectorAll('.filterchip').forEach(function(c){
+      c.classList.toggle('active', c.dataset.filter===filter);
+    });
+    var grid = document.getElementById('catalog-grid');
+    grid.innerHTML = '';
+    var list = (filter==='todas') ? SPECIES : SPECIES.filter(function(s){ return s.categorias.indexOf(filter)!==-1; });
+    list.forEach(function(s){
+      var card = document.createElement('button');
+      card.className = 'specimen-card';
+      card.style.borderLeftColor = CATS[s.categorias[0]].color;
+      var badges = s.categorias.map(function(c){
+        return '<span class="badge '+CATS[c].cls+'">'+CATS[c].icon+' '+CATS[c].label+'</span>';
+      }).join('');
+      card.innerHTML = '<div class="icon-badge">'+s.icono+'</div><h3>'+s.nombre+'</h3><p class="sci">'+s.cientifico+'</p><div class="badgerow">'+badges+'</div>';
+      card.onclick = function(){ openModal(s.id); };
+      grid.appendChild(card);
+    });
+  }
+
+  function openModal(id){
+    var s = SPECIES.filter(function(x){ return x.id===id; })[0];
+    if(!s) return;
+    document.getElementById('modal-icon').textContent = s.icono;
+    document.getElementById('modal-name').textContent = s.nombre;
+    document.getElementById('modal-sci').textContent = s.cientifico;
+    document.getElementById('modal-badges').innerHTML = s.categorias.map(function(c){
+      return '<span class="badge '+CATS[c].cls+'">'+CATS[c].icon+' '+CATS[c].label+'</span>';
+    }).join('');
+    document.getElementById('modal-tamano').textContent = s.tamano;
+    document.getElementById('modal-descripcion').textContent = s.descripcion;
+    document.getElementById('modal-danio').textContent = s.danio;
+    document.getElementById('modal-deteccion').textContent = s.deteccion;
+    document.getElementById('modal-control').innerHTML = s.control.map(function(c){ return '<li>'+c+'</li>'; }).join('');
+    document.getElementById('modal-dato').textContent = 'Dato curioso: '+s.dato;
+    document.getElementById('species-modal').classList.remove('hidden');
+  }
+
+  function closeModal(){
+    document.getElementById('species-modal').classList.add('hidden');
+  }
+
+  showScreen('home');
+</script>
+</body>
+</html>
