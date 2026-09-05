@@ -1,20 +1,46 @@
-# 🌾 Bitácora de Plagas: Manual de Campo
+# Bitácora de Plagas
 
-Manual de campo interactivo sobre plagas de grano almacenado, almacenes, fábricas y cocinas.
+Sitio web para identificar plagas de grano almacenado, almacenes, molinos y cocinas.
 
-Las **fichas y fotografías** de las especies del catálogo se adaptaron del *Manual de plagas de bienes almacenados en México* (Preserve). Las fotos van incrustadas en `index.html`, así que el archivo funciona solo, sin carpeta extra y sin internet.
+**Página en vivo:** https://s3ebaz.github.io/plague-game/
 
-## Contenido
+## Archivos que van en GitHub
 
-- Inspección de **100 preguntas** al azar (también se mezclan las opciones).
-- Progreso guardado en el navegador.
-- Al final: % de aciertos, % de errores, retroalimentación y material para estudiar los fallos.
-- Catálogo de **28 especies** con foto (cuando el manual la trae), ciclo de vida, distribución, biología, hábitos, movimiento y control.
+| Archivo | Para qué |
+|---|---|
+| `index.html` | El sitio completo (fichas, fotos, quiz, niveles) |
+| `sw.js` | Cache para que cargue mejor en el celular |
+| `manifest.webmanifest` | Nombre e icono del sitio |
+| `icon-192.png` | Icono chico |
+| `icon-512.png` | Icono grande |
+| `README.md` | Esta guía |
+| `.gitignore` | Ignora archivos basura del sistema |
 
-## Cómo usarlo
+No hace falta carpeta `images`: las fotos ya van dentro de `index.html`.
 
-Abre `index.html` en Chrome, Firefox, Edge o Safari.
+## Cómo subirlo (si lo haces a mano)
+
+1. Entra a https://github.com/S3ebaz/plague-game
+2. *Add file → Upload files*
+3. Sube los archivos de la tabla
+4. Commit a la rama `main`
+5. *Settings → Pages → Deploy from a branch → main / root*
+
+Al cabo de uno o dos minutos abre:
+
+https://s3ebaz.github.io/plague-game/
+
+## Qué incluye el sitio
+
+- Nombre de jugador e insignias
+- 10 niveles (de reconocer el insecto hasta sitio + plaguicida)
+- 5 niveles especiales al terminar los 10
+- Luego los 10 se repiten más difíciles
+- Preguntas y opciones siempre al azar
+- Top 10 del mes (en ese navegador)
+- Catálogo y mapa por silo, bodega, molino, cocina
+- Productos Preserve en cada ficha
 
 ## Aviso
 
-Contenido educativo. Fumigantes, insecticidas o rodenticidas solo con personal certificado, etiqueta y norma local.
+Contenido educativo. La fosfina y otros plaguicidas solo los aplica personal autorizado.
