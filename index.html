@@ -281,6 +281,10 @@
 
   .id-box{background:var(--card);border:1px dashed var(--line);border-radius:10px;padding:16px;margin:0 0 16px;}
   .id-box input[type=file]{display:block;margin:8px 0 12px;max-width:100%;}
+  .id-previews{display:flex;gap:12px;flex-wrap:wrap;margin:8px 0;}
+  .id-previews figure{margin:0;flex:1;min-width:140px;}
+  .id-previews figcaption{font-family:var(--font-mono);font-size:0.72rem;color:var(--ink-soft);}
+  .id-tips{margin:10px 0 0;padding-left:18px;color:var(--ink-soft);font-size:0.88rem;}
   .id-preview{max-width:100%;max-height:240px;display:block;margin:8px 0;border:1px solid var(--line);border-radius:8px;background:#fff;object-fit:contain;}
   .id-status{font-size:0.9rem;color:var(--ink-soft);}
   .match-card{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px;margin:0 0 10px;font:inherit;color:inherit;cursor:pointer;}
@@ -440,8 +444,23 @@
       <label for="id-file"><strong>Foto de la plaga</strong></label>
       <input id="id-file" type="file" accept="image/*" capture="environment">
       <button class="btn-primary" type="button" onclick="identificarFoto()">Buscar coincidencias</button>
-      <p class="id-status" id="id-status">Aún no hay foto. Enfoca el insecto sobre fondo claro, de cuerpo completo.</p>
-      <img id="id-preview" class="id-preview" alt="" hidden>
+      <p class="id-status" id="id-status">Aún no hay foto. Enfoca el insecto de cuerpo completo, de cerca, con luz y fondo claro.</p>
+      <div class="id-previews">
+        <figure>
+          <img id="id-preview" class="id-preview" alt="Foto original" hidden>
+          <figcaption>Original</figcaption>
+        </figure>
+        <figure>
+          <img id="id-preview-opt" class="id-preview" alt="Foto optimizada" hidden>
+          <figcaption>Recorte y contraste</figcaption>
+        </figure>
+      </div>
+      <ul class="id-tips">
+        <li>Un solo insecto, lo más cerca posible.</li>
+        <li>Fondo blanco o claro, sin grano ni mano tapando.</li>
+        <li>Luz de frente; evita la sombra dura.</li>
+        <li>Que se vean cabeza, patas y antenas.</li>
+      </ul>
     </div>
     <div id="id-results"></div>
     <p class="footnote">Esto no sustituye a un entomólogo ni a un laboratorio. Es una ayuda educativa: compara forma y color con el catálogo y te lleva a fuentes para verificar.</p>
@@ -2530,71 +2549,193 @@
     return list;
   }
 
+
   function loadImg(src){
     return new Promise(function(resolve, reject){
-      var im = new Image();
-      im.onload = function(){ resolve(im); };
-      im.onerror = function(){ reject(new Error('no image')); };
-      im.src = src;
+      function fallback(){
+        var im = new Image();
+        im.onload = function(){ resolve(im); };
+        im.onerror = function(){ reject(new Error('no image')); };
+        im.src = src;
+      }
+      if(typeof createImageBitmap === 'function'){
+        fetch(src).then(function(r){ return r.blob(); }).then(function(b){
+          return createImageBitmap(b, {imageOrientation:'from-image'});
+        }).then(resolve).catch(fallback);
+      } else fallback();
     });
   }
 
+  function rasterize(img, maxSide){
+    maxSide = maxSide || 360;
+    var scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+    var w = Math.max(16, Math.round(img.width * scale));
+    var h = Math.max(16, Math.round(img.height * scale));
+    var c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    var ctx = c.getContext('2d', {willReadFrequently:true});
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0,0,w,h);
+    ctx.drawImage(img, 0, 0, w, h);
+    return {canvas:c, ctx:ctx, w:w, h:h, data:ctx.getImageData(0,0,w,h)};
+  }
+
+  function isBackground(r,g,b){
+    var mx = Math.max(r,g,b), mn = Math.min(r,g,b);
+    if(r>232 && g>232 && b>232) return true;
+    if(r<18 && g<18 && b<18) return true;
+    if(mx-mn < 12 && mx > 210) return true;
+    return false;
+  }
+
+  function optimizePixels(src){
+    var w = src.w, h = src.h, data = src.data.data;
+    var minX=w, minY=h, maxX=0, maxY=0, found=0;
+    var i,x,y,r,g,b;
+    for(y=0;y<h;y++){
+      for(x=0;x<w;x++){
+        i=(y*w+x)*4;
+        r=data[i]; g=data[i+1]; b=data[i+2];
+        if(!isBackground(r,g,b)){
+          if(x<minX) minX=x; if(x>maxX) maxX=x;
+          if(y<minY) minY=y; if(y>maxY) maxY=y;
+          found++;
+        }
+      }
+    }
+    if(found < w*h*0.004 || maxX<=minX || maxY<=minY){
+      minX=0; minY=0; maxX=w-1; maxY=h-1;
+    }
+    var pad = Math.round(Math.max(4, 0.06*Math.max(maxX-minX, maxY-minY)));
+    minX=Math.max(0,minX-pad); minY=Math.max(0,minY-pad);
+    maxX=Math.min(w-1,maxX+pad); maxY=Math.min(h-1,maxY+pad);
+    var cw = maxX-minX+1, ch = maxY-minY+1;
+    var lum=[], idx=[];
+    for(y=minY;y<=maxY;y++){
+      for(x=minX;x<=maxX;x++){
+        i=(y*w+x)*4;
+        r=data[i]; g=data[i+1]; b=data[i+2];
+        if(!isBackground(r,g,b)){
+          lum.push(0.299*r+0.587*g+0.114*b);
+          idx.push(i);
+        }
+      }
+    }
+    lum.sort(function(a,b){ return a-b; });
+    var p5 = lum.length ? lum[Math.floor(lum.length*0.05)] : 0;
+    var p95 = lum.length ? lum[Math.min(lum.length-1, Math.floor(lum.length*0.95))] : 255;
+    var span = Math.max(18, p95-p5);
+    var out = document.createElement('canvas');
+    out.width = cw; out.height = ch;
+    var octx = out.getContext('2d', {willReadFrequently:true});
+    var imgOut = octx.createImageData(cw, ch);
+    var od = imgOut.data;
+    var sx,sy,si,oi,L,f,nr,ng,nb;
+    for(sy=0; sy<ch; sy++){
+      for(sx=0; sx<cw; sx++){
+        si=((minY+sy)*w+(minX+sx))*4;
+        oi=(sy*cw+sx)*4;
+        r=data[si]; g=data[si+1]; b=data[si+2];
+        if(isBackground(r,g,b)){
+          od[oi]=255; od[oi+1]=255; od[oi+2]=255; od[oi+3]=255;
+          continue;
+        }
+        L=0.299*r+0.587*g+0.114*b;
+        f=(L-p5)/span;
+        if(f<0) f=0; if(f>1) f=1;
+        f=Math.pow(f,0.9);
+        var gain = (p5+f*span)/Math.max(1,L);
+        nr=Math.max(0,Math.min(255,r*gain));
+        ng=Math.max(0,Math.min(255,g*gain));
+        nb=Math.max(0,Math.min(255,b*gain));
+        od[oi]=nr; od[oi+1]=ng; od[oi+2]=nb; od[oi+3]=255;
+      }
+    }
+    octx.putImageData(imgOut,0,0);
+    return {canvas:out, ctx:octx, w:cw, h:ch, data:imgOut, found:found};
+  }
+
   function signatureFromImage(img, size){
-    size = size || 48;
+    size = size || 64;
+    var raw = rasterize(img, 360);
+    var opt = optimizePixels(raw);
     var c = document.createElement('canvas');
     c.width = size; c.height = size;
     var ctx = c.getContext('2d', {willReadFrequently:true});
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0,0,size,size);
-    var ratio = Math.min(size/img.width, size/img.height);
-    var w = Math.max(1, img.width*ratio);
-    var h = Math.max(1, img.height*ratio);
-    ctx.drawImage(img, (size-w)/2, (size-h)/2, w, h);
+    var ratio = Math.min(size/opt.w, size/opt.h);
+    var dw = Math.max(1, opt.w*ratio), dh = Math.max(1, opt.h*ratio);
+    ctx.drawImage(opt.canvas, (size-dw)/2, (size-dh)/2, dw, dh);
     var data = ctx.getImageData(0,0,size,size).data;
-    var cells = 8, cell = size/cells;
-    var grid = [];
-    var hist = [0,0,0,0,0,0,0,0,0,0,0,0];
-    var sumR=0,sumG=0,sumB=0,n=size*size;
+    var cells = 16, cell = size/cells;
+    var grid=[], edges=[];
+    var hist=new Array(16).join('0').split('').map(function(){return 0;});
+    if(hist.length<16){ hist=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]; }
+    var sumR=0,sumG=0,sumB=0,ink=0;
+    var gray=new Float32Array(size*size);
+    var x,y,i,L;
+    for(y=0;y<size;y++){
+      for(x=0;x<size;x++){
+        i=(y*size+x)*4;
+        gray[y*size+x]=0.299*data[i]+0.587*data[i+1]+0.114*data[i+2];
+      }
+    }
     for(var cy=0; cy<cells; cy++){
       for(var cx=0; cx<cells; cx++){
-        var r=0,g=0,b=0,count=0;
-        for(var y=Math.floor(cy*cell); y<Math.floor((cy+1)*cell); y++){
-          for(var x=Math.floor(cx*cell); x<Math.floor((cx+1)*cell); x++){
-            var i = (y*size+x)*4;
-            r += data[i]; g += data[i+1]; b += data[i+2];
-            var lum = 0.299*data[i]+0.587*data[i+1]+0.114*data[i+2];
-            hist[Math.min(11, Math.floor(lum/22))]++;
+        var r=0,g=0,b=0,count=0,eg=0;
+        for(y=Math.floor(cy*cell); y<Math.floor((cy+1)*cell); y++){
+          for(x=Math.floor(cx*cell); x<Math.floor((cx+1)*cell); x++){
+            i=(y*size+x)*4;
+            r+=data[i]; g+=data[i+1]; b+=data[i+2];
+            L=gray[y*size+x];
+            var gx=0, gy=0;
+            if(x+1<size && y+1<size){
+              gx=gray[y*size+x+1]-L;
+              gy=gray[(y+1)*size+x]-L;
+            }
+            eg+=Math.sqrt(gx*gx+gy*gy);
+            if(!isBackground(data[i],data[i+1],data[i+2])){
+              hist[Math.min(15, Math.floor(L/16))]++;
+              sumR+=data[i]; sumG+=data[i+1]; sumB+=data[i+2];
+              ink++;
+            }
             count++;
           }
         }
         grid.push(r/count, g/count, b/count);
-        sumR += r; sumG += g; sumB += b;
+        edges.push(eg/count);
       }
     }
     return {
-      grid: grid,
-      hist: hist,
-      avg: [sumR/n, sumG/n, sumB/n],
-      aspect: img.width/Math.max(1,img.height)
+      grid:grid,
+      edges:edges,
+      hist:hist,
+      avg: ink? [sumR/ink,sumG/ink,sumB/ink] : [128,128,128],
+      aspect: opt.w/Math.max(1,opt.h),
+      preview: opt.canvas
     };
   }
 
   function sigDistance(a, b){
-    var d=0, i;
+    var d=0, e=0, i;
     for(i=0;i<a.grid.length;i++){
-      var dif = a.grid[i]-b.grid[i];
-      d += dif*dif;
+      var dif=a.grid[i]-b.grid[i];
+      d+=dif*dif;
     }
-    d = Math.sqrt(d / a.grid.length) / 255;
-    var h=0;
-    for(i=0;i<a.hist.length;i++){
-      h += Math.abs(a.hist[i]-b.hist[i]);
+    d=Math.sqrt(d/a.grid.length)/255;
+    for(i=0;i<a.edges.length;i++){
+      var de=a.edges[i]-b.edges[i];
+      e+=de*de;
     }
-    h = h / (2 * 48 * 48);
+    e=Math.sqrt(e/a.edges.length)/90;
+    var h=0, hs=0;
+    for(i=0;i<a.hist.length;i++){ h+=Math.abs(a.hist[i]-b.hist[i]); hs+=a.hist[i]+b.hist[i]; }
+    h = hs? h/hs : 1;
     var cR=a.avg[0]-b.avg[0], cG=a.avg[1]-b.avg[1], cB=a.avg[2]-b.avg[2];
-    var col = Math.sqrt(cR*cR+cG*cG+cB*cB)/441;
-    var asp = Math.min(1, Math.abs(a.aspect-b.aspect)/1.5);
-    return 0.55*d + 0.2*h + 0.15*col + 0.1*asp;
+    var col=Math.sqrt(cR*cR+cG*cG+cB*cB)/441;
+    var asp=Math.min(1, Math.abs(a.aspect-b.aspect)/1.4);
+    return 0.38*d + 0.28*e + 0.14*h + 0.12*col + 0.08*asp;
   }
 
   function ensureSignatures(){
@@ -2610,18 +2751,34 @@
     });
   }
 
+  function showOptPreview(sig){
+    var prev = document.getElementById('id-preview-opt');
+    if(!prev || !sig || !sig.preview) return;
+    prev.src = sig.preview.toDataURL('image/jpeg', 0.85);
+    prev.hidden = false;
+  }
+
   function onIdFileChange(){
     var input = document.getElementById('id-file');
     var preview = document.getElementById('id-preview');
     var status = document.getElementById('id-status');
+    var opt = document.getElementById('id-preview-opt');
+    if(opt) opt.hidden = true;
     if(!input.files || !input.files[0]){ return; }
     var file = input.files[0];
     if(_idUserUrl) URL.revokeObjectURL(_idUserUrl);
     _idUserUrl = URL.createObjectURL(file);
     preview.src = _idUserUrl;
     preview.hidden = false;
-    status.textContent = 'Foto lista. Pulsa «Buscar coincidencias».';
+    status.textContent = 'Optimizando recorte y contraste…';
     _idUserSig = null;
+    loadImg(_idUserUrl).then(function(img){
+      _idUserSig = signatureFromImage(img);
+      showOptPreview(_idUserSig);
+      status.textContent = 'Foto lista y recortada. Pulsa «Buscar coincidencias».';
+    }).catch(function(){
+      status.textContent = 'Foto lista. Pulsa «Buscar coincidencias».';
+    });
   }
 
   function identificarFoto(){
@@ -2632,23 +2789,25 @@
       status.textContent = 'Primero elige o toma una foto.';
       return;
     }
-    status.textContent = 'Comparando con las fichas del catálogo…';
+    status.textContent = 'Recortando, subiendo contraste y comparando…';
     box.innerHTML = '';
     var src = _idUserUrl || URL.createObjectURL(input.files[0]);
-    loadImg(src).then(function(img){
+    var ready = _idUserSig ? Promise.resolve(_idUserSig) : loadImg(src).then(function(img){
       _idUserSig = signatureFromImage(img);
-      return ensureSignatures();
-    }).then(function(sigs){
+      showOptPreview(_idUserSig);
+      return _idUserSig;
+    });
+    ready.then(function(){ return ensureSignatures(); }).then(function(sigs){
       var ranked = sigs.map(function(row){
         var dist = sigDistance(_idUserSig, row.sig);
         return {id: row.id, score: Math.max(0, Math.min(99, Math.round((1-dist)*100)))};
       }).sort(function(a,b){ return b.score-a.score; });
       var top = ranked.slice(0,3);
       renderIdResults(top);
-      status.textContent = 'Coincidencias locales listas. Abajo están las fuentes para verificar.';
+      status.textContent = 'Comparación hecha con la foto ya recortada. Verifica abajo en las fuentes.';
       if(navigator.onLine && top[0]) verificarEnLaWeb(top[0].id);
     }).catch(function(){
-      status.textContent = 'No se pudo leer la foto. Prueba con otra imagen más nítida.';
+      status.textContent = 'No se pudo leer la foto. Prueba de cerca, con luz y fondo claro.';
     });
   }
 
